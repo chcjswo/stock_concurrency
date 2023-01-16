@@ -9,6 +9,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -42,7 +47,28 @@ class StockServiceTest {
 	void stock_decrease() {
 		stockService.decrease(1L, 1L);
 		final Stock stock = stockRepository.findById(1L).orElseThrow();
-		Assertions.assertThat(stock.getQuantity()).isEqualTo(99L);
+		assertThat(stock.getQuantity()).isEqualTo(99L);
+	}
+
+	@Test
+	void multi_stock_decrease() throws InterruptedException {
+		int threadCount = 100;
+		ExecutorService executorService = Executors.newFixedThreadPool(32);
+		CountDownLatch latch = new CountDownLatch(threadCount);
+
+		for (int i = 0; i < threadCount; i++) {
+			executorService.submit(() -> {
+				try {
+					stockService.decrease(1L, 1L);
+				} finally {
+					latch.countDown();
+				}
+			});
+			latch.await();
+
+			final Stock stock = stockRepository.findById(1L).orElseThrow();
+			assertThat(stock.getQuantity()).isEqualTo(0);
+		}
 	}
 
 }
