@@ -22,7 +22,6 @@ public class StockService {
 	@Transactional
 	public void decrease(Long id, Long quantity) {
 		final Stock stock = stockRepository.findById(id).orElseThrow();
-
 		stock.decrease(quantity);
 
 		stockRepository.saveAndFlush(stock);
